@@ -2,7 +2,15 @@
 
 Spring Boot 3 (Java 17) REST API with JWT authentication, role-based access control, and MongoDB.
 
-This is the **backend only**. The frontend (React SPA) lives in a separate repository: **[link your frontend repo here]**.
+This is the **backend only**. The frontend (React SPA) lives in a separate repository: **https://github.com/OgungbeniOpeoluwa/Maintainace-system-frontend**.
+
+## Live
+
+- **API**: https://maintainace-system.onrender.com
+- **Swagger UI**: https://maintainace-system.onrender.com/swagger-ui.html
+- **Frontend**: https://maintainace-system-frontend.vercel.app
+
+The free tier sleeps after inactivity — the first request after a period of idle time may take 30–60 seconds to respond.
 
 ## Tech Stack
 - Java 17, Spring Boot 3.3.2
@@ -76,19 +84,29 @@ The API starts on **http://localhost:8080**.
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - API docs (OpenAPI JSON): http://localhost:8080/api-docs
 
-### Getting a Gmail App Password (local development)
+### Email Configuration
+
+Officer account creation sends a welcome email with login credentials. Two options, chosen automatically based on which environment variables are set:
+
+| Option | Environment variable(s) | Best for |
+|---|---|---|
+| **Brevo API** | `BREVO_API_KEY` | Render / any deployed environment |
+| **Gmail SMTP** | `MAIL_USERNAME`, `MAIL_APP_PASSWORD` | Local development |
+
+The app uses Brevo whenever `BREVO_API_KEY` is set, and falls back to Gmail SMTP otherwise.
+
+⚠️ **Render's free tier blocks outbound SMTP ports (25, 465, 587)**, so Gmail SMTP does not work once deployed there, even if it works locally. Set `BREVO_API_KEY` for any Render deployment.
+
+**Gmail SMTP setup** (local development):
 1. Turn on 2-Step Verification: https://myaccount.google.com/security
 2. Generate an App Password: https://myaccount.google.com/apppasswords
 3. Use the 16-character result (no spaces) as `MAIL_APP_PASSWORD`.
 
-### ⚠️ Email on Render (production) — Gmail SMTP will NOT work there
-Render's free tier blocks all outbound traffic on SMTP ports 25, 465, and 587. Gmail SMTP uses port 587, so officer-creation emails that work fine locally will silently fail once deployed — you'll see `Failed to send officer welcome email via SMTP` in the logs, and the admin dashboard will show the "email could not be sent" fallback (with the temp password shown on-screen instead).
-
-**Fix: use Brevo's HTTP API instead**, which sends over HTTPS (port 443, never blocked):
-1. Sign up free at https://www.brevo.com (300 emails/day free, no credit card).
+**Brevo setup** (required for Render, optional locally):
+1. Sign up free at https://www.brevo.com (300 emails/day free, no card required).
 2. Go to **Settings → SMTP & API → API Keys** → generate a new key.
-3. Verify a sender email/domain under **Senders & Domains** (Brevo requires this before it'll send on your behalf).
-4. Set `BREVO_API_KEY` as an environment variable **on Render only** (leave it unset locally if you'd rather keep using Gmail SMTP for local dev — the app automatically prefers Brevo when the key is present, and falls back to Gmail SMTP when it isn't).
+3. Verify a sender email/domain under **Senders & Domains** (required before Brevo will send on your behalf).
+4. Set `BREVO_API_KEY`.
 
 ---
 
@@ -98,18 +116,25 @@ On startup, if the database is empty, `DataSeeder` creates:
 - A default admin account: **`admin@miva.university`** / **`Admin@123`**
 - 6 starter request categories: Electrical, Plumbing, Furniture, Internet, Classroom Equipment, Hostel Maintenance
 
-⚠️ Change the seeded admin password after your first login (via `PUT /api/auth/change-password`), or rotate it before deploying publicly.
+⚠️ Change the seeded admin password after your first login (via `PUT /api/auth/change-password`), or change it before deploying publicly.
 
 ---
 
-### ⚠️ Uploaded photos on Render (production) — local disk does NOT persist
-Render's free tier filesystem is ephemeral: it's wiped on every redeploy, and even reset when the service wakes up after being idle. If evidence photos are stored on local disk (the default fallback), they'll silently disappear — the request record survives in MongoDB, but the image link breaks.
+### Image Storage Configuration
 
-**Fix: use Cloudinary**, a free image-hosting API:
+Uploaded evidence photos are stored using one of two options, chosen automatically:
+
+| Option | Environment variable(s) | Best for |
+|---|---|---|
+| **Cloudinary** | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Render / any deployed environment |
+| **Local disk** | *(none — this is the default)* | Local development |
+
+⚠️ **Render's free tier filesystem is ephemeral** — it's wiped on every redeploy and reset on cold-start wake-ups. Photos stored on local disk will be lost; the request record survives in MongoDB, but the image link breaks. Set the three `CLOUDINARY_*` variables for any Render deployment.
+
+**Cloudinary setup** (required for Render, optional locally):
 1. Sign up free at https://cloudinary.com (25GB storage/bandwidth free, no card required).
-2. On your Cloudinary dashboard, copy your **Cloud Name**, **API Key**, and **API Secret**.
-3. Set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` as environment variables **on Render**.
-4. That's it — the app automatically uploads to Cloudinary when these are set, and falls back to local disk when they aren't (so local dev needs zero setup).
+2. Copy your **Cloud Name**, **API Key**, and **API Secret** from the dashboard.
+3. Set the three `CLOUDINARY_*` environment variables.
 
 ---
 
@@ -122,7 +147,7 @@ Render's free tier filesystem is ephemeral: it's wiped on every redeploy, and ev
 | `OFFICER` | Created only by an admin (`POST /api/admin/officers`) — gets a temp password + category specialization, `mustChangePassword=true` until they set their own |
 | `ADMIN` | Seeded by default; more can be created by changing another user's role via `PUT /api/admin/users/{id}/role` |
 
-Note: self-registration only ever creates `STUDENT` or `STAFF` — if a `role` value of `OFFICER` or `ADMIN` is sent to `/api/auth/register`, it's silently downgraded to `STUDENT` server-side, so privilege escalation isn't possible through that endpoint.
+Note: self-registration only ever creates `STUDENT` or `STAFF`. if a `role` value of `OFFICER` or `ADMIN` is sent to `/api/auth/register`, it's silently downgraded to `STUDENT` server-side, so privilege escalation isn't possible through that endpoint.
 
 ---
 
@@ -186,7 +211,7 @@ Run them with:
 mvn test
 ```
 
-These don't require a live MongoDB connection — repositories are mocked — so they run the same locally, in CI, or offline. Screenshots of a green `mvn test` run are good evidence for your report's "Testing evidence" section.
+These don't require a live MongoDB connection,repositories are mocked, so they run the same locally, in CI, or offline. Screenshots of a green `mvn test` run are good evidence for your report's "Testing evidence" section.
 
 For endpoints these unit/web tests don't reach directly (role-based assignment, claiming, admin actions), exercise them manually through Swagger UI (`http://localhost:8080/swagger-ui.html`) or Postman — screenshots from there double as your API documentation evidence too.
 
