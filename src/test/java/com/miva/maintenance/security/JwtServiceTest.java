@@ -26,7 +26,7 @@ class JwtServiceTest {
                 .fullName("Test User")
                 .email(email)
                 .password("hashed")
-                .role(Role.STUDENT_STAFF)
+                .role(Role.STUDENT)
                 .active(true)
                 .build();
         return new UserPrincipal(user);

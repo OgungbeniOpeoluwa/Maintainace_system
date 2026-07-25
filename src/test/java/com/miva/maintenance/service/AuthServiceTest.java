@@ -59,7 +59,7 @@ class AuthServiceTest {
         AuthResponse response = authService.register(request);
 
         assertThat(response.getToken()).isEqualTo("fake-jwt-token");
-        assertThat(response.getRole()).isEqualTo(Role.STUDENT_STAFF);
+        assertThat(response.getRole()).isEqualTo(Role.STUDENT);
         assertThat(response.getEmail()).isEqualTo("jane@miva.university");
 
         // Public registration must never let someone hand themselves OFFICER/ADMIN.
@@ -91,7 +91,7 @@ class AuthServiceTest {
                 .fullName("Jane Doe")
                 .email("jane@miva.university")
                 .password("ENCODED")
-                .role(Role.STUDENT_STAFF)
+                .role(Role.STUDENT)
                 .active(true)
                 .build();
 
@@ -106,7 +106,7 @@ class AuthServiceTest {
 
     private User argThatUserIsStudentStaffWithEncodedPassword() {
         return org.mockito.ArgumentMatchers.argThat(user ->
-                user.getRole() == Role.STUDENT_STAFF
+                user.getRole() == Role.STUDENT
                         && "ENCODED".equals(user.getPassword())
                         && "jane@miva.university".equals(user.getEmail())
         );

@@ -45,7 +45,7 @@ class AuthControllerTest {
                 .userId("user-1")
                 .fullName("Jane Doe")
                 .email("jane@miva.university")
-                .role(Role.STUDENT_STAFF)
+                .role(Role.STUDENT)
                 .mustChangePassword(false)
                 .build();
 
@@ -90,7 +90,7 @@ class AuthControllerTest {
                 .userId("user-1")
                 .fullName("Jane Doe")
                 .email("jane@miva.university")
-                .role(Role.STUDENT_STAFF)
+                .role(Role.STUDENT)
                 .mustChangePassword(false)
                 .build();
 
