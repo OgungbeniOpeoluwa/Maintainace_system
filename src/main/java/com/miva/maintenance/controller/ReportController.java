@@ -55,7 +55,7 @@ public class ReportController {
         result.put("byStatus", byStatus);
         result.put("byCategory", byCategoryName);
         result.put("totalUsers", userRepository.count());
-        result.put("totalStudents", userRepository.countByRole(Role.STUDENT_STAFF));
+        result.put("totalStudents", userRepository.countByRole(Role.STUDENT));
         result.put("totalOfficers", userRepository.countByRole(Role.OFFICER));
         result.put("totalAdmins", userRepository.countByRole(Role.ADMIN));
 

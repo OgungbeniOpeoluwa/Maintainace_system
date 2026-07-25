@@ -37,7 +37,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .department(request.getDepartment())
-                .role(Role.STUDENT_STAFF)
+                .role(Role.STUDENT)
                 .active(true)
                 .build();
 
