@@ -2,6 +2,8 @@
 
 Spring Boot 3 (Java 17) REST API with JWT authentication, role-based access control, and MongoDB.
 
+This is the **backend only**. The frontend (React SPA) lives in a separate repository: **[link your frontend repo here]**.
+
 ## Tech Stack
 - Java 17, Spring Boot 3.3.2
 - Spring Security + JWT (jjwt)
@@ -139,6 +141,7 @@ Note: self-registration only ever creates `STUDENT` or `STAFF` — if a `role` v
 | POST | `/` | Any | Submit a request (`multipart/form-data`: `request` JSON part + optional `image`) |
 | GET | `/?status=&page=&size=` | Any | List requests, scoped by role (own / assigned / all) |
 | GET | `/{id}` | Any | Get one request |
+| GET | `/{id}/logs` | Any | The full audit/status history for a request (who changed what, and when) |
 | GET | `/available?page=&size=` | Officer | Unassigned requests in the officer's categories |
 | GET | `/department?page=&size=` | Staff | Every request submitted by anyone in the staff member's department (read-only) |
 | PUT | `/{id}/claim` | Officer | Atomically self-claim an unassigned request |
