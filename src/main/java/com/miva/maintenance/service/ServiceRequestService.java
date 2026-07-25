@@ -7,6 +7,7 @@ import com.miva.maintenance.model.*;
 import com.miva.maintenance.repository.AssignmentRepository;
 import com.miva.maintenance.repository.ServiceRequestRepository;
 import com.miva.maintenance.repository.StatusLogRepository;
+import com.miva.maintenance.repository.UserRepository;
 import com.mongodb.client.result.UpdateResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ public class ServiceRequestService {
     private final AssignmentRepository assignmentRepository;
     private final StatusLogRepository statusLogRepository;
     private final MongoTemplate mongoTemplate;
+    private final UserRepository userRepository;
 
     public ServiceRequest submit(ServiceRequestDto dto, String submitterId, String imageUrl,
                                  String submitterName, String submitterDepartment) {
@@ -164,11 +166,20 @@ public class ServiceRequestService {
         statusLogRepository.deleteByRequestId(requestId);
     }
 
+    /** The full status/audit history for a request, most recent first. */
+    public List<StatusLog> getLogs(String requestId) {
+        return statusLogRepository.findByRequestIdOrderByTimestampDesc(requestId);
+    }
+
     private void logStatus(String requestId, RequestStatus status, String updatedBy, String comment) {
+        String updatedByName = userRepository.findById(updatedBy)
+                .map(User::getFullName)
+                .orElse("Unknown");
         statusLogRepository.save(StatusLog.builder()
                 .requestId(requestId)
                 .status(status)
                 .updatedBy(updatedBy)
+                .updatedByName(updatedByName)
                 .comment(comment)
                 .build());
     }

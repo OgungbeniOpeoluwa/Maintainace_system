@@ -22,7 +22,8 @@ public class StatusLog {
 
     private String requestId;
     private RequestStatus status;
-    private String updatedBy;   // user id
+    private String updatedBy;
+    private String updatedByName;
     private String comment;
 
     @CreatedDate

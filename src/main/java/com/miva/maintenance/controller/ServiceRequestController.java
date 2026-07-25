@@ -83,6 +83,12 @@ public class ServiceRequestController {
         return ResponseEntity.ok(requestService.findById(id));
     }
 
+    /** The full status/audit history for a request — who changed what, and when. */
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<java.util.List<com.miva.maintenance.model.StatusLog>> logs(@PathVariable String id) {
+        return ResponseEntity.ok(requestService.getLogs(id));
+    }
+
     /** Officer-only: unassigned requests matching the officer's category specialization(s). */
     @GetMapping("/available")
     @PreAuthorize("hasAuthority('ROLE_OFFICER')")

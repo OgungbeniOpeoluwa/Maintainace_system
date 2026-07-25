@@ -7,6 +7,7 @@ import com.miva.maintenance.model.ServiceRequest;
 import com.miva.maintenance.repository.AssignmentRepository;
 import com.miva.maintenance.repository.ServiceRequestRepository;
 import com.miva.maintenance.repository.StatusLogRepository;
+import com.miva.maintenance.repository.UserRepository;
 import com.mongodb.client.result.UpdateResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,12 +35,13 @@ class ServiceRequestServiceTest {
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private StatusLogRepository statusLogRepository;
     @Mock private MongoTemplate mongoTemplate;
+    @Mock private UserRepository userRepository;
 
     private ServiceRequestService service;
 
     @BeforeEach
     void setUp() {
-        service = new ServiceRequestService(requestRepository, assignmentRepository, statusLogRepository, mongoTemplate);
+        service = new ServiceRequestService(requestRepository, assignmentRepository, statusLogRepository, mongoTemplate, userRepository);
     }
 
     @Test
@@ -136,5 +138,43 @@ class ServiceRequestServiceTest {
         service.delete("req-1", "admin-1", Role.ADMIN);
 
         verify(requestRepository).deleteById("req-1");
+    }
+
+    @Test
+    void submitResolvesTheUpdaterNameOntoTheAuditLogEntry() {
+        ServiceRequestDto dto = new ServiceRequestDto();
+        dto.setTitle("Flickering lights");
+        dto.setCategoryId("cat-electrical");
+        dto.setLocation("Library, 2nd floor");
+
+        when(requestRepository.save(any(ServiceRequest.class))).thenAnswer(invocation -> {
+            ServiceRequest saved = invocation.getArgument(0);
+            saved.setId("req-2");
+            return saved;
+        });
+        when(userRepository.findById("student-1")).thenReturn(Optional.of(
+                com.miva.maintenance.model.User.builder().id("student-1").fullName("Jane Doe").build()
+        ));
+
+        service.submit(dto, "student-1", null, "Jane Doe", "Computer Science");
+
+        verify(statusLogRepository).save(org.mockito.ArgumentMatchers.argThat(log ->
+                "Jane Doe".equals(log.getUpdatedByName())
+        ));
+    }
+
+    @Test
+    void getLogsReturnsTheFullHistoryForARequest() {
+        when(statusLogRepository.findByRequestIdOrderByTimestampDesc("req-1")).thenReturn(java.util.List.of(
+                com.miva.maintenance.model.StatusLog.builder()
+                        .requestId("req-1").status(RequestStatus.COMPLETED).updatedByName("Officer Bob").build(),
+                com.miva.maintenance.model.StatusLog.builder()
+                        .requestId("req-1").status(RequestStatus.PENDING).updatedByName("Jane Doe").build()
+        ));
+
+        java.util.List<com.miva.maintenance.model.StatusLog> logs = service.getLogs("req-1");
+
+        assertThat(logs).hasSize(2);
+        assertThat(logs.get(0).getStatus()).isEqualTo(RequestStatus.COMPLETED);
     }
 }

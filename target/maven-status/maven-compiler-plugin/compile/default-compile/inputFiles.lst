@@ -1,6 +1,7 @@
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/MaintenanceApplication.java
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/config/DataSeeder.java
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/config/MongoAuditingConfig.java
+/Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/config/OpenApiConfig.java
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/config/SecurityConfig.java
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/config/WebConfig.java
 /Users/tife/Downloads/maintenance-system/backend/src/main/java/com/miva/maintenance/controller/AdminController.java

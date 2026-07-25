@@ -5,6 +5,7 @@ import com.miva.maintenance.dto.AuthResponse;
 import com.miva.maintenance.dto.LoginRequest;
 import com.miva.maintenance.dto.RegisterRequest;
 import com.miva.maintenance.model.Role;
+import com.miva.maintenance.security.JwtAuthFilter;
 import com.miva.maintenance.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Security filters are disabled here (addFilters = false) because this test targets the
  * controller/HTTP contract in isolation — RBAC on protected endpoints is covered separately
  * by the service-layer tests and manual Swagger verification described in the README.
+ *
+ * JwtAuthFilter is mocked (not just filtered out of execution) because @WebMvcTest
+ * auto-registers any @Component implementing Filter — JwtAuthFilter qualifies — so Spring
+ * still needs a bean of that type to build the test context, even though addFilters=false
+ * stops it from actually running during the request. Mocking it means Spring never has to
+ * construct the real one, which would otherwise fail: its constructor needs JwtService and
+ * CustomUserDetailsService, both @Service beans that this narrow slice deliberately excludes.
  */
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -32,6 +40,7 @@ class AuthControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @MockBean private AuthService authService;
+    @MockBean private JwtAuthFilter jwtAuthFilter;
 
     @Test
     void registerReturns200WithATokenForAValidPayload() throws Exception {
@@ -56,7 +65,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("fake-jwt-token"))
-                .andExpect(jsonPath("$.role").value("STUDENT_STAFF"));
+                .andExpect(jsonPath("$.role").value("STUDENT"));
     }
 
     @Test

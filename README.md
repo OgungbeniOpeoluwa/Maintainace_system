@@ -199,5 +199,4 @@ Render has no native Java runtime — only Node.js, Python, Ruby, Go, Rust, and 
 5. First deploy takes a few minutes (it's compiling the Java app inside the Docker build) — that's expected.
 
 ## 9. Known limitations
-- Uploaded evidence photos use local disk storage only as a fallback when Cloudinary isn't configured (see section 4a) — set `CLOUDINARY_CLOUD_NAME`/`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` on any deployed environment to avoid Render's ephemeral-disk problem.
 - No refresh-token flow — JWTs simply expire after `JWT_EXPIRATION_MS` and require re-login.
