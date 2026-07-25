@@ -1,7 +1,7 @@
 package com.miva.maintenance.model;
 
 public enum Role {
-    STUDENT_STAFF,
+    STUDENT,
     OFFICER,
     ADMIN
 }
