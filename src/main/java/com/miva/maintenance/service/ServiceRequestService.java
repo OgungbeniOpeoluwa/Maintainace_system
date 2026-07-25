@@ -128,8 +128,10 @@ public class ServiceRequestService {
                 .notes(dto.getNotes())
                 .build());
 
-        logStatus(requestId, RequestStatus.ASSIGNED, adminId,
-                "Assigned to officer " + dto.getOfficerId());
+        String officerName = userRepository.findById(dto.getOfficerId())
+                .map(User::getFullName)
+                .orElse("an officer");
+        logStatus(requestId, RequestStatus.ASSIGNED, adminId, "Assigned to " + officerName);
         return req;
     }
 
