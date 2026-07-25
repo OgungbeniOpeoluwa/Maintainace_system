@@ -26,7 +26,10 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepository.count() == 0) {
+        // Check specifically for the admin account, not "any user at all" — otherwise a single
+        // stray non-admin record (leftover test data, a race with an early registration, etc.)
+        // would silently and permanently prevent the admin from ever being seeded.
+        if (userRepository.findByEmail("admin@miva.university").isEmpty()) {
             userRepository.save(User.builder()
                     .fullName("System Administrator")
                     .email("admin@miva.university")
