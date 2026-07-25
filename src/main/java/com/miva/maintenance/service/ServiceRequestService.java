@@ -28,7 +28,8 @@ public class ServiceRequestService {
     private final StatusLogRepository statusLogRepository;
     private final MongoTemplate mongoTemplate;
 
-    public ServiceRequest submit(ServiceRequestDto dto, String submitterId, String imageUrl) {
+    public ServiceRequest submit(ServiceRequestDto dto, String submitterId, String imageUrl,
+                                 String submitterName, String submitterDepartment) {
         ServiceRequest req = ServiceRequest.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -37,6 +38,8 @@ public class ServiceRequestService {
                 .priority(dto.getPriority() == null ? "MEDIUM" : dto.getPriority())
                 .status(RequestStatus.PENDING)
                 .submittedBy(submitterId)
+                .submitterName(submitterName)
+                .submitterDepartment(submitterDepartment)
                 .imageUrl(imageUrl)
                 .build();
         req = requestRepository.save(req);
@@ -46,6 +49,14 @@ public class ServiceRequestService {
 
     public Page<ServiceRequest> findForStudent(String userId, Pageable pageable) {
         return requestRepository.findBySubmittedBy(userId, pageable);
+    }
+
+    /** Every request submitted by anyone in the given department — read visibility for Staff. */
+    public Page<ServiceRequest> findForDepartment(String department, Pageable pageable) {
+        if (department == null || department.isBlank()) {
+            return Page.empty(pageable);
+        }
+        return requestRepository.findBySubmitterDepartment(department, pageable);
     }
 
     public Page<ServiceRequest> findForOfficer(String officerId, Pageable pageable) {
@@ -128,8 +139,29 @@ public class ServiceRequestService {
         return req;
     }
 
-    public void delete(String requestId) {
+    /**
+     * Deletes a request. Admins can delete any request at any time. Students/Staff can only
+     * delete a request they submitted themselves, and only while it's still PENDING — once an
+     * officer has been assigned or work has started, it's out of the submitter's hands.
+     */
+    public void delete(String requestId, String userId, Role requesterRole) {
+        ServiceRequest req = findById(requestId);
+
+        if (requesterRole != Role.ADMIN) {
+            boolean isOwner = req.getSubmittedBy() != null && req.getSubmittedBy().equals(userId);
+            if (!isOwner) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "You can only delete requests you submitted yourself.");
+            }
+            if (req.getStatus() != RequestStatus.PENDING) {
+                throw new IllegalStateException(
+                        "This request can no longer be deleted — it has already been assigned or actioned.");
+            }
+        }
+
         requestRepository.deleteById(requestId);
+        assignmentRepository.deleteByRequestId(requestId);
+        statusLogRepository.deleteByRequestId(requestId);
     }
 
     private void logStatus(String requestId, RequestStatus status, String updatedBy, String comment) {

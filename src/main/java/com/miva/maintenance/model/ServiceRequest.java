@@ -31,6 +31,8 @@ public class ServiceRequest {
     private RequestStatus status = RequestStatus.PENDING;
 
     private String submittedBy;     // User id
+    private String submitterName;       // denormalized, so staff can see who submitted without a join
+    private String submitterDepartment; // denormalized, so staff can filter department-wide requests
     private String assignedTo;      // User id (officer), nullable
     private String imageUrl;        // uploaded evidence photo, nullable
 

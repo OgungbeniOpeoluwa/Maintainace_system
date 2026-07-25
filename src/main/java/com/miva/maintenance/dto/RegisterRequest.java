@@ -19,7 +19,5 @@ public class RegisterRequest {
 
     private String department;
 
-    // Optional: only ADMIN accounts should normally be created by another admin.
-    // Public registration defaults to STUDENT_STAFF unless specified as OFFICER by an admin call.
     private Role role;
 }

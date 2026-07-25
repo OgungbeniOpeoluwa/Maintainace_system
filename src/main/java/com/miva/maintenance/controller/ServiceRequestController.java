@@ -38,11 +38,13 @@ public class ServiceRequestController {
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
         String imageUrl = fileStorageService.store(image);
-        ServiceRequest created = requestService.submit(dto, principal.getUser().getId(), imageUrl);
+        ServiceRequest created = requestService.submit(
+                dto, principal.getUser().getId(), imageUrl,
+                principal.getUser().getFullName(), principal.getUser().getDepartment());
         return ResponseEntity.ok(created);
     }
 
-    /** List requests — scoped by role: student sees own, officer sees assigned, admin sees all (optionally filtered by status). */
+    /** List requests — scoped by role: student/staff see their own, officer sees assigned, admin sees all (optionally filtered by status). */
     @GetMapping
     public ResponseEntity<Page<ServiceRequest>> list(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -59,9 +61,21 @@ public class ServiceRequestController {
         } else if (role == Role.OFFICER) {
             result = requestService.findForOfficer(principal.getUser().getId(), pageable);
         } else {
+            // STUDENT and STAFF both see their own submissions here.
             result = requestService.findForStudent(principal.getUser().getId(), pageable);
         }
         return ResponseEntity.ok(result);
+    }
+
+    /** Staff-only: every request submitted by anyone in the staff member's department. Read visibility only. */
+    @GetMapping("/department")
+    @PreAuthorize("hasAuthority('ROLE_STAFF')")
+    public ResponseEntity<Page<ServiceRequest>> departmentRequests(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(requestService.findForDepartment(principal.getUser().getDepartment(), pageable));
     }
 
     @GetMapping("/{id}")
@@ -110,10 +124,12 @@ public class ServiceRequestController {
         return ResponseEntity.ok(requestService.updateStatus(id, dto, principal.getUser().getId()));
     }
 
+    /** Delete a request. Admins can delete any; students/staff can only delete their own PENDING requests. */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
-        requestService.delete(id);
+    public ResponseEntity<Void> delete(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        requestService.delete(id, principal.getUser().getId(), principal.getUser().getRole());
         return ResponseEntity.noContent().build();
     }
 }

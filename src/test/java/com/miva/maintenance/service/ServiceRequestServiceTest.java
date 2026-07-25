@@ -2,6 +2,7 @@ package com.miva.maintenance.service;
 
 import com.miva.maintenance.dto.ServiceRequestDto;
 import com.miva.maintenance.model.RequestStatus;
+import com.miva.maintenance.model.Role;
 import com.miva.maintenance.model.ServiceRequest;
 import com.miva.maintenance.repository.AssignmentRepository;
 import com.miva.maintenance.repository.ServiceRequestRepository;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Optional;
 
@@ -55,10 +57,11 @@ class ServiceRequestServiceTest {
             return saved;
         });
 
-        ServiceRequest result = service.submit(dto, "student-1", null);
+        ServiceRequest result = service.submit(dto, "student-1", null, "Jane Doe", "Computer Science");
 
         assertThat(result.getStatus()).isEqualTo(RequestStatus.PENDING);
         assertThat(result.getSubmittedBy()).isEqualTo("student-1");
+        assertThat(result.getSubmitterDepartment()).isEqualTo("Computer Science");
         assertThat(result.getTitle()).isEqualTo("Broken tap in Room 12");
         verify(statusLogRepository).save(any());
     }
@@ -88,5 +91,50 @@ class ServiceRequestServiceTest {
         assertThatThrownBy(() -> service.claim("req-1", "officer-1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("no longer available");
+    }
+
+    @Test
+    void studentCanDeleteTheirOwnPendingRequest() {
+        when(requestRepository.findById("req-1")).thenReturn(Optional.of(
+                ServiceRequest.builder().id("req-1").submittedBy("student-1").status(RequestStatus.PENDING).build()
+        ));
+
+        service.delete("req-1", "student-1", Role.STUDENT);
+
+        verify(requestRepository).deleteById("req-1");
+        verify(assignmentRepository).deleteByRequestId("req-1");
+        verify(statusLogRepository).deleteByRequestId("req-1");
+    }
+
+    @Test
+    void studentCannotDeleteSomeoneElsesRequest() {
+        when(requestRepository.findById("req-1")).thenReturn(Optional.of(
+                ServiceRequest.builder().id("req-1").submittedBy("someone-else").status(RequestStatus.PENDING).build()
+        ));
+
+        assertThatThrownBy(() -> service.delete("req-1", "student-1", Role.STUDENT))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void studentCannotDeleteTheirOwnRequestOnceItsPastPending() {
+        when(requestRepository.findById("req-1")).thenReturn(Optional.of(
+                ServiceRequest.builder().id("req-1").submittedBy("student-1").status(RequestStatus.ASSIGNED).build()
+        ));
+
+        assertThatThrownBy(() -> service.delete("req-1", "student-1", Role.STUDENT))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("no longer be deleted");
+    }
+
+    @Test
+    void adminCanDeleteAnyRequestRegardlessOfOwnerOrStatus() {
+        when(requestRepository.findById("req-1")).thenReturn(Optional.of(
+                ServiceRequest.builder().id("req-1").submittedBy("someone-else").status(RequestStatus.COMPLETED).build()
+        ));
+
+        service.delete("req-1", "admin-1", Role.ADMIN);
+
+        verify(requestRepository).deleteById("req-1");
     }
 }

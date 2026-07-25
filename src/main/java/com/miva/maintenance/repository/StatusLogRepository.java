@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface StatusLogRepository extends MongoRepository<StatusLog, String> {
     List<StatusLog> findByRequestIdOrderByTimestampDesc(String requestId);
+    void deleteByRequestId(String requestId);
 }

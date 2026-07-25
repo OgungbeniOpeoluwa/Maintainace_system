@@ -10,6 +10,7 @@ import com.miva.maintenance.repository.UserRepository;
 import com.miva.maintenance.security.JwtService;
 import com.miva.maintenance.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,14 +31,16 @@ public class AuthService {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        // Public self-registration is always STUDENT_STAFF. Officer/Admin accounts
-        // must be created by an existing admin via /api/admin/users.
+        // Public self-registration can only create STUDENT or STAFF accounts — never
+        // OFFICER/ADMIN, regardless of what a caller puts in the request body.
+        Role role = getRole(request);
+
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .department(request.getDepartment())
-                .role(Role.STUDENT)
+                .role(role)
                 .active(true)
                 .build();
 
@@ -53,6 +56,19 @@ public class AuthService {
                 .role(user.getRole())
                 .mustChangePassword(user.isMustChangePassword())
                 .build();
+    }
+
+    @NonNull
+    private static Role getRole(RegisterRequest request) {
+        Role requestedRole = request.getRole();
+        Role role = (requestedRole == Role.STUDENT || requestedRole == Role.STAFF)
+                ? requestedRole
+                : Role.STUDENT;
+
+        if (role == Role.STAFF && (request.getDepartment() == null || request.getDepartment().isBlank())) {
+            throw new IllegalArgumentException("Department is required for staff accounts");
+        }
+        return role;
     }
 
     public AuthResponse login(LoginRequest request) {

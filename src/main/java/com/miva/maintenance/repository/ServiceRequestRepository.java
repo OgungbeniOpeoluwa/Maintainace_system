@@ -13,4 +13,6 @@ public interface ServiceRequestRepository extends MongoRepository<ServiceRequest
     Page<ServiceRequest> findByCategoryId(String categoryId, Pageable pageable);
     Page<ServiceRequest> findByCategoryIdInAndAssignedToIsNullAndStatus(
             java.util.List<String> categoryIds, RequestStatus status, Pageable pageable);
+    Page<ServiceRequest> findBySubmitterDepartment(String submitterDepartment, Pageable pageable);
+
 }
